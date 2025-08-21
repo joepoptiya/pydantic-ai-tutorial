@@ -37,16 +37,16 @@ agent1 = Agent(
 
 # Example usage of basic agent
 response = agent1.run_sync("How can I track my order #12345?")
-print(response.data)
+print(response.output)
 print(response.all_messages())
-print(response.cost())
+print(response.usage())
 
 
 response2 = agent1.run_sync(
     user_prompt="What was my previous question?",
     message_history=response.new_messages(),
 )
-print(response2.data)
+print(response2.output)
 
 # --------------------------------------------------------------
 # 2. Agent with Structured Response
@@ -71,7 +71,7 @@ class ResponseModel(BaseModel):
 
 agent2 = Agent(
     model=model,
-    result_type=ResponseModel,
+    output_type=ResponseModel,
     system_prompt=(
         "You are an intelligent customer support agent. "
         "Analyze queries carefully and provide structured responses."
@@ -79,7 +79,7 @@ agent2 = Agent(
 )
 
 response = agent2.run_sync("How can I track my order #12345?")
-print(response.data.model_dump_json(indent=2))
+print(response.output.model_dump_json(indent=2))
 
 
 # --------------------------------------------------------------
@@ -116,7 +116,7 @@ class CustomerDetails(BaseModel):
 # Agent with structured output and dependencies
 agent5 = Agent(
     model=model,
-    result_type=ResponseModel,
+    output_type=ResponseModel,
     deps_type=CustomerDetails,
     retries=3,
     system_prompt=(
@@ -130,7 +130,8 @@ agent5 = Agent(
 # Add dynamic system prompt based on dependencies
 @agent5.system_prompt
 async def add_customer_name(ctx: RunContext[CustomerDetails]) -> str:
-    return f"Customer details: {to_markdown(ctx.deps)}"  # These depend in some way on context that isn't known until runtime
+    # These depend in some way on context that isn't known until runtime
+    return f"Customer details: {to_markdown(ctx.deps)}"
 
 
 customer = CustomerDetails(
@@ -138,24 +139,25 @@ customer = CustomerDetails(
     name="John Doe",
     email="john.doe@example.com",
     orders=[
-        Order(order_id="12345", status="shipped", items=["Blue Jeans", "T-Shirt"]),
+        Order(order_id="12345", status="shipped",
+              items=["Blue Jeans", "T-Shirt"]),
     ],
 )
 
 response = agent5.run_sync(user_prompt="What did I order?", deps=customer)
 
 response.all_messages()
-print(response.data.model_dump_json(indent=2))
+print(response.output.model_dump_json(indent=2))
 
 print(
     "Customer Details:\n"
     f"Name: {customer.name}\n"
     f"Email: {customer.email}\n\n"
     "Response Details:\n"
-    f"{response.data.response}\n\n"
+    f"{response.output.response}\n\n"
     "Status:\n"
-    f"Follow-up Required: {response.data.follow_up_required}\n"
-    f"Needs Escalation: {response.data.needs_escalation}"
+    f"Follow-up Required: {response.output.follow_up_required}\n"
+    f"Needs Escalation: {response.output.needs_escalation}"
 )
 
 
@@ -184,7 +186,7 @@ def get_shipping_info(ctx: RunContext[CustomerDetails]) -> str:
 # Agent with structured output and dependencies
 agent5 = Agent(
     model=model,
-    result_type=ResponseModel,
+    output_type=ResponseModel,
     deps_type=CustomerDetails,
     retries=3,
     system_prompt=(
@@ -207,17 +209,17 @@ response = agent5.run_sync(
 )
 
 response.all_messages()
-print(response.data.model_dump_json(indent=2))
+print(response.output.model_dump_json(indent=2))
 
 print(
     "Customer Details:\n"
     f"Name: {customer.name}\n"
     f"Email: {customer.email}\n\n"
     "Response Details:\n"
-    f"{response.data.response}\n\n"
+    f"{response.output.response}\n\n"
     "Status:\n"
-    f"Follow-up Required: {response.data.follow_up_required}\n"
-    f"Needs Escalation: {response.data.needs_escalation}"
+    f"Follow-up Required: {response.output.follow_up_required}\n"
+    f"Needs Escalation: {response.output.needs_escalation}"
 )
 
 
@@ -249,7 +251,7 @@ customer = CustomerDetails(
 # Agent with reflection and self-correction
 agent5 = Agent(
     model=model,
-    result_type=ResponseModel,
+    output_type=ResponseModel,
     deps_type=CustomerDetails,
     retries=3,
     system_prompt=(
@@ -280,4 +282,4 @@ response = agent5.run_sync(
 )
 
 response.all_messages()
-print(response.data.model_dump_json(indent=2))
+print(response.output.model_dump_json(indent=2))
